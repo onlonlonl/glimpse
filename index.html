@@ -543,7 +543,7 @@ function WindowPage(props) {
   var fileRef = React.useRef(null);
   var isToday = viewDate === today;
   var dayData = grouped[viewDate] || [];
-  var total = (isToday ? 1 : 0) + dayData.length;
+  var total = 1 + dayData.length;
   React.useEffect(function () {
     setIdx(0);
     setOpenId(null);
@@ -571,7 +571,8 @@ function WindowPage(props) {
     api("POST", "", {
       text: text,
       photo_base64: photoData.base64,
-      photo_type: photoData.type
+      photo_type: photoData.type,
+      date: viewDate
     }).then(function () {
       setSending(false);
       setSent(true);
@@ -585,8 +586,8 @@ function WindowPage(props) {
       alert("Upload failed: " + err.message);
     });
   };
-  var glimpseIdx = isToday ? idx - 1 : idx;
-  var item = isToday && idx === 0 ? null : dayData[glimpseIdx];
+  var glimpseIdx = idx - 1;
+  var item = idx === 0 ? null : dayData[glimpseIdx];
   return React.createElement("div", {
     style: S.page
   }, React.createElement(TopBar, {
@@ -634,8 +635,8 @@ function WindowPage(props) {
     /* Window */
     React.createElement("div", {
       style: { flex: 1, padding: "0 4px", overflow: "hidden" }
-    }, isToday && idx === 0 ? React.createElement(Win, {
-    label: "today",
+    }, idx === 0 ? React.createElement(Win, {
+    label: isToday ? "today" : fmtDate(viewDate),
     dots: total,
     dotIdx: 0,
     onDot: function (i) {
@@ -674,14 +675,7 @@ function WindowPage(props) {
       onClick: function () {
         fileRef.current && fileRef.current.click();
       }
-    }, preview ? "CHANGE PHOTO" : "CHOOSE PHOTO"), !preview ? React.createElement("div", {
-      style: {
-        fontSize: 9,
-        color: C.textLight,
-        fontFamily: F,
-        letterSpacing: 1
-      }
-    }, "SWIPE LEFT TO VIEW") : null),
+    }, preview ? "CHANGE PHOTO" : "CHOOSE PHOTO")),
     sill: React.createElement("div", {
       style: {
         display: "flex",
@@ -749,28 +743,7 @@ function WindowPage(props) {
         letterSpacing: 1
       }
     }, "waiting for reply..."))
-  }) : React.createElement(Win, {
-    label: fmtDate(viewDate),
-    dots: 0,
-    onDot: function () {},
-    glass: React.createElement("div", {
-      style: {
-        aspectRatio: "3/4",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: C.card
-      }
-    }, React.createElement("span", {
-      style: {
-        fontSize: 11,
-        color: C.textLight,
-        fontFamily: F,
-        letterSpacing: 1
-      }
-    }, "NO GLIMPSES THIS DAY")),
-    sill: React.createElement("div")
-  })),
+  }) : null),
     /* Right arrow */
     React.createElement("div", {
       onClick: function() { if (idx < total - 1) swipe("l"); },
@@ -796,6 +769,7 @@ function WindowPage(props) {
 function CalendarPage(props) {
   var data = props.data;
   var grouped = groupByDate(data);
+  var today = todayStr();
   var _yr = React.useState(new Date().getFullYear());
   var year = _yr[0],
     setYear = _yr[1];
@@ -880,13 +854,13 @@ function CalendarPage(props) {
     return React.createElement("div", {
       key: ci,
       onClick: function () {
-        if (has) {
+        if (dateStr <= today) {
           props.onPickDate(dateStr);
           props.go("window");
         }
       },
       style: {
-        cursor: has ? "pointer" : "default",
+        cursor: dateStr <= today ? "pointer" : "default",
         aspectRatio: "1/1",
         border: has ? "2px solid " + C.accent : "1px solid " + C.border,
         background: has ? C.frame : C.card,
